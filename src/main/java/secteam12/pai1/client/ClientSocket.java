@@ -1,71 +1,66 @@
 package secteam12.pai1.client;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
-
 import javax.swing.JOptionPane;
 
 public class ClientSocket {
 
-	/**
-	 * @param args
-	 * @throws IOException
-	 */
-	public static void main(String[] args) throws IOException {
-	try {
+    public static void main(String[] args) {
+        try {
+            // connect to server
+            Socket socket = new Socket("localhost", 3343);
 
-		// create Socket from factory
-		Socket socket = new Socket("127.0.0.1", 3343);
+            // create PrintWriter for sending data to server
+            PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-		// create PrintWriter for sending login to server
-		PrintWriter output = new PrintWriter(new OutputStreamWriter(
-					socket.getOutputStream()));
-		// prompt user for user name
-		String userName = JOptionPane.showInputDialog(null,
-					"Enter User Name:");
+            // create BufferedReader for reading server response
+            BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-		// send user name to server
-		output.println(userName);
+            // read and display menu options from server
+            String menuOption1 = input.readLine();
+            String menuOption2 = input.readLine();
+            String menuOption3 = input.readLine();
 
-		// prompt user for password
-		String password = JOptionPane.showInputDialog(null,
-					"Enter Password:");
+            String menu = menuOption1 + "\n" + menuOption2 + "\n" + menuOption3;
+            String option = JOptionPane.showInputDialog(menu);
 
-		// send password to server
-		output.println(password);
+            // send selected option to server
+            output.println(option);
 
-		output.flush();
+            if ("1".equals(option)) {
+                // Handle login
+                String userName = JOptionPane.showInputDialog("Enter username:");
+                output.println(userName);
+                String password = JOptionPane.showInputDialog("Enter password:");
+                output.println(password);
 
-		// create BufferedReader for reading server response
-		BufferedReader input = new BufferedReader(new InputStreamReader(
-					socket.getInputStream()));
+                // read response from server
+                String response = input.readLine();
+                JOptionPane.showMessageDialog(null, response);
 
-		// read response from server
-		String response = input.readLine();
+            } else if ("2".equals(option)) {
+                // Handle registration
+                String newUserName = JOptionPane.showInputDialog("Enter new username:");
+                output.println(newUserName);
+                String newPassword = JOptionPane.showInputDialog("Enter new password:");
+                output.println(newPassword);
+				
+                // read response from server
+                String response = input.readLine();
+                JOptionPane.showMessageDialog(null, response);
 
-		// display response to user
-		JOptionPane.showMessageDialog(null, response);
+            } else {
+                JOptionPane.showMessageDialog(null, "Invalid option");
+            }
 
-		// clean up streams and Socket
-		output.close();
-		input.close();
-		socket.close();
+            // clean up streams and Socket
+            output.close();
+            input.close();
+            socket.close();
 
-	} // end try
-
-	// handle exception communicating with server
-	catch (IOException ioException) {
-		ioException.printStackTrace();
-	}
-
-	// exit application
-	finally {
-		System.exit(0);
-	}
- 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
