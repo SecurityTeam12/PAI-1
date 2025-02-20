@@ -23,6 +23,18 @@ public class Transaction {
     @Column(nullable = false)
     private Double amount;
 
+    @Column(nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "id=" + id +
+                ", sourceAccount='" + sourceAccount + '\'' +
+                ", destinationAccount='" + destinationAccount + '\'' +
+                ", amount=" + amount +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 
 }
