@@ -7,19 +7,31 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
-public class Server{
+import secteam12.pai1.model.User;
+import secteam12.pai1.repository.UserRepository;
+
+@Component
+public class Server implements CommandLineRunner{
 	
 	/**
 	 * @param args
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args) throws IOException,          
+
+	 @Autowired
+	 UserRepository userRepository;
+
+
+	public void run(String... args) throws IOException,          
                            InterruptedException {
 
-		
 		// perpetually listen for clients
 		ServerSocket serverSocket = new ServerSocket(3343);
 		while (true) {
@@ -39,6 +51,11 @@ public class Server{
                     OutputStreamWriter(socket.getOutputStream()));
 		String userName = input.readLine();
 		String password = input.readLine();
+
+		List<User> users = userRepository.findAll();
+		
+		System.out.println(users);
+		
 		output.println("User, " + userName);
 		output.println("Pass, " + password);
 			
@@ -54,7 +71,7 @@ public class Server{
 			ioException.printStackTrace();
 		}
 
-	} // end while
+	} 
 
    }
 
