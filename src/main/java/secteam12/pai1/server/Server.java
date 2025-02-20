@@ -17,62 +17,86 @@ import secteam12.pai1.model.User;
 import secteam12.pai1.repository.UserRepository;
 
 @Component
-public class Server implements CommandLineRunner{
-	
-	/**
-	 * @param args
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 */
+public class Server implements CommandLineRunner {
 
-	 @Autowired
-	 UserRepository userRepository;
+    @Autowired
+    UserRepository userRepository;
 
 
-	public void run(String... args) throws IOException,          
-                           InterruptedException {
+    @Override
+    public void run(String... args) throws IOException {
+        ServerSocket serverSocket = new ServerSocket(3343);
+        System.err.println("Server started and waiting for connections...");
 
-		// perpetually listen for clients
-		ServerSocket serverSocket = new ServerSocket(3343);
-		while (true) {
+        while (true) {
+            try {
+                Socket socket = serverSocket.accept();
+                System.err.println("Client connected.");
 
-		// wait for client connection and check login information
-		try {
-		System.err.println("Waiting for connection...");
-						
-		Socket socket = serverSocket.accept();
+                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-		// open BufferedReader for reading data from client
-		BufferedReader input = new BufferedReader(new
-                               InputStreamReader(socket.getInputStream()));
+                // Send menu options to client
+                output.println("1. Login");
+                output.println("2. Register");
+                output.println("Enter your choice:");
 
-		// open PrintWriter for writing data to client
-		PrintWriter output = new PrintWriter(new 
-                    OutputStreamWriter(socket.getOutputStream()));
-		String userName = input.readLine();
-		String password = input.readLine();
+                String option = input.readLine();
 
-		List<User> users = userRepository.findAll();
-		
-		System.out.println(users);
-		
-		output.println("User, " + userName);
-		output.println("Pass, " + password);
-			
+                if ("1".equals(option)) {
+                    // Handle login
+                    String userName = input.readLine();
+                    String password = input.readLine();
 
-		output.close();
-		input.close();
-		socket.close();
+                    User user = loginUser(userName, password);
+                    if (user == null) {
+                        output.println("Invalid login information");
+                    } else {
+                        output.println("Welcome, " + user.getUsername() + "!");
+                    }
+                } else if ("2".equals(option)) {
+                    // Handle registration
+                    String newUserName = input.readLine();
+                    String newPassword = input.readLine();
 
-		} // end try
+                    if (registerUser(newUserName, newPassword)) {
+                        output.println("Registration successful. You can now log in.");
+                    } else {
+                        output.println("Registration failed. Username already exists.");
+                    }
+                } else {
+                    output.println("Invalid option selected.");
+                }
 
-		// handle exception communicating with client
-		catch (IOException ioException) {
-			ioException.printStackTrace();
-		}
+                input.close();
+                output.close();
+                socket.close();
+                System.err.println("Client disconnected.");
 
-	} 
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-   }
+	private User loginUser(String userName, String password) {
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            if (user.getUsername().equals(userName) && user.getPassword().equals(password)) {
+                return user;
+            }
+        }
+        return null;
+    }
 
+    private boolean registerUser(String userName, String password) {
+        if (userRepository.findByUsername(userName) != null) {
+            return false; // Username already exists
+        }
+        User newUser = new User();
+        newUser.setUsername(userName);
+        newUser.setPassword(password);
+        userRepository.save(newUser);
+        return true;
+    }
 }
