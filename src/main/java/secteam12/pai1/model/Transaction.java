@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 @Setter
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "entity_seq", 
+        sequenceName = "entity_sequence", 
+        initialValue = 100)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE	, generator = "entity_seq")
     private Long id;
 
     @Column(nullable = false)
@@ -23,6 +26,18 @@ public class Transaction {
     @Column(nullable = false)
     private Double amount;
 
+    @Column(nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "id=" + id +
+                ", sourceAccount='" + sourceAccount + '\'' +
+                ", destinationAccount='" + destinationAccount + '\'' +
+                ", amount=" + amount +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 
 }
