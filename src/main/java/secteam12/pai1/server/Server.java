@@ -89,10 +89,9 @@ public class Server implements CommandLineRunner {
             output.println("2. Logout");
 
             String option = input.readLine();
-
+    
             if ("1".equals(option)) {
                 // Handle transaction
-                output.println("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
                 String transaction = input.readLine();
                 String[] parts = transaction.split(",");
                 if (parts.length != 3) {
@@ -103,7 +102,11 @@ public class Server implements CommandLineRunner {
                 newTransaction.setSourceAccount(parts[0]);
                 newTransaction.setDestinationAccount(parts[1]);
                 newTransaction.setAmount(Double.parseDouble(parts[2]));
+
+                
+
                 transactionRepository.save(newTransaction);
+
 
                 output.println("Transaction received: " + transaction);
             } else if ("2".equals(option)) {

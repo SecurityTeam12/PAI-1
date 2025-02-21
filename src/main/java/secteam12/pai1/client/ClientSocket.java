@@ -45,7 +45,7 @@ public class ClientSocket {
 
             } else if ("2".equals(option)) {
                 // Handle registration
-                String newUserName = JOptionPane.showInputDialog("new username:");
+                String newUserName = JOptionPane.showInputDialog("Enter new username:");
                 output.println(newUserName);
                 String newPassword = JOptionPane.showInputDialog("Enter new password:");
                 output.println(newPassword);
