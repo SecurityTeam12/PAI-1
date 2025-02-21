@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import secteam12.pai1.model.User;
 import secteam12.pai1.repository.TransactionRepository;
 import secteam12.pai1.repository.UserRepository;
+import secteam12.pai1.utils.PwnedPasswordChecker;
 import secteam12.pai1.model.Transaction;
 
 @Component
@@ -28,7 +29,7 @@ public class Server implements CommandLineRunner {
     private TransactionRepository transactionRepository;
 
     @Override
-    public void run(String... args) throws IOException {
+    public void run(String... args) throws Exception {
         ServerSocket serverSocket = new ServerSocket(3343);
         while (true) {
             try {
@@ -63,12 +64,12 @@ public class Server implements CommandLineRunner {
                     // Handle registration
                     String newUserName = input.readLine();
                     String newPassword = input.readLine();
-
-                    if (registerUser(newUserName, newPassword)) {
-                        output.println("Registration successful. You can now log in.");
-                    } else {
-                        output.println("Registration failed. Username already exists.");
-                    }
+                        if (registerUser(newUserName, newPassword)) {
+                            output.println("Registration successful. You can now log in.");
+                            break;
+                        } else {
+                            output.println("Registration failed. Please try again.");
+                        }
                 } else {
                     output.println("Invalid option selected.");
                 }
@@ -85,12 +86,10 @@ public class Server implements CommandLineRunner {
     private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws IOException {
         while (true) {
             output.println("Select an option:");
-            output.println("1. Perform a transaction");
-            output.println("2. Logout");
 
             String option = input.readLine();
     
-            if ("1".equals(option)) {
+            if ("0".equals(option)) {
                 // Handle transaction
                 String transaction = input.readLine();
                 String[] parts = transaction.split(",");
@@ -109,7 +108,7 @@ public class Server implements CommandLineRunner {
 
 
                 output.println("Transaction received: " + transaction);
-            } else if ("2".equals(option)) {
+            } else if ("1".equals(option)) {
                 // Handle logout
                 output.println("Logged out successfully.");
                 break;
@@ -129,14 +128,34 @@ public class Server implements CommandLineRunner {
         return null;
     }
 
-    private boolean registerUser(String userName, String password) {
+
+    private boolean registerUser(String userName, String password) throws Exception {
         if (userRepository.findByUsername(userName) != null) {
             return false; // Username already exists
+        }
+        if (!checkPasswordSecurity(password)) {
+            return false;
         }
         User newUser = new User();
         newUser.setUsername(userName);
         newUser.setPassword(password);
         userRepository.save(newUser);
         return true;
+    }
+
+    private Boolean checkPasswordSecurity(String password) throws Exception {
+        Boolean hasUppercase = !password.equals(password.toLowerCase());
+        Boolean hasLowercase = !password.equals(password.toUpperCase());
+        Boolean hasNumber = password.matches(".*\\d.*");
+        Boolean hasSpecialChar = !password.matches("[A-Za-z0-9 ]*");
+        Boolean hasCorrectLength = password.length() >= 8;
+        Boolean hasBeenPwned = PwnedPasswordChecker.isPasswordPwned(password);
+
+        if (hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasCorrectLength && !hasBeenPwned) {
+            return true;
+        }
+        return false;
+
+
     }
 }

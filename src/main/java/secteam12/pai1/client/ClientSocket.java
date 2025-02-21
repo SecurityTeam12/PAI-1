@@ -37,10 +37,9 @@ public class ClientSocket {
 
                 // read response from server
                 String response = input.readLine();
-                JOptionPane.showMessageDialog(null, response);
 
                 if (response.startsWith("Welcome")) {
-                    handleAuthenticatedUser(input, output);
+                    handleAuthenticatedUser(input, output,response);
                 }
 
             } else if ("2".equals(option)) {
@@ -68,21 +67,17 @@ public class ClientSocket {
         }
     }
 
-    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output) throws IOException {
+    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws IOException {
         while (true) {
             // read and display authenticated user menu options from server
-            String selectOption = input.readLine();
-            String menuOption1 = input.readLine();
-            String menuOption2 = input.readLine();
-            
 
-            String menu = selectOption + "\n" + menuOption1 + "\n" + menuOption2;
-            String option = JOptionPane.showInputDialog(menu);
+            String menu = welcome + "\n" + input.readLine();
+            int option = JOptionPane.showOptionDialog(null, menu, "Select an option", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Perform a Transaction", "Logout" },null);
 
             // send selected option to server
             output.println(option);
 
-            if ("1".equals(option)) {
+            if (option == 0) {
                 // Handle transaction
                 String transaction = JOptionPane.showInputDialog("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
                 output.println(transaction);
@@ -91,13 +86,13 @@ public class ClientSocket {
                 String response = input.readLine();
                 JOptionPane.showMessageDialog(null, response);
 
-            } else if ("2".equals(option)) {
+            } else if (option == 1) {
                 // Handle logout
                 JOptionPane.showMessageDialog(null, "Logged out successfully.");
                 break;
 
             } else {
-                JOptionPane.showMessageDialog(null, "Invalid option");
+                break;
             }
         }
     }
