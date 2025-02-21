@@ -14,32 +14,35 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import secteam12.pai1.model.User;
+import secteam12.pai1.repository.TransactionRepository;
 import secteam12.pai1.repository.UserRepository;
+import secteam12.pai1.model.Transaction;
 
 @Component
 public class Server implements CommandLineRunner {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Override
     public void run(String... args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(3343);
-        System.err.println("Server started and waiting for connections...");
-
         while (true) {
             try {
+                System.err.println("Waiting for connection...");
+
                 Socket socket = serverSocket.accept();
-                System.err.println("Client connected.");
 
                 BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
                 // Send menu options to client
+                output.println("Welcome! Please select an option:");
                 output.println("1. Login");
                 output.println("2. Register");
-                output.println("Enter your choice:");
 
                 String option = input.readLine();
 
@@ -53,6 +56,8 @@ public class Server implements CommandLineRunner {
                         output.println("Invalid login information");
                     } else {
                         output.println("Welcome, " + user.getUsername() + "!");
+                        handleAuthenticatedUser(input, output, user);
+                        
                     }
                 } else if ("2".equals(option)) {
                     // Handle registration
@@ -68,18 +73,53 @@ public class Server implements CommandLineRunner {
                     output.println("Invalid option selected.");
                 }
 
-                input.close();
                 output.close();
+                input.close();
                 socket.close();
-                System.err.println("Client disconnected.");
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-	private User loginUser(String userName, String password) {
+    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws IOException {
+        while (true) {
+            output.println("Select an option:");
+            output.println("1. Perform a transaction");
+            output.println("2. Logout");
+
+            String option = input.readLine();
+    
+            if ("1".equals(option)) {
+                // Handle transaction
+                String transaction = input.readLine();
+                String[] parts = transaction.split(",");
+                if (parts.length != 3) {
+                    output.println("Invalid transaction format.");
+                    continue;
+                }
+                Transaction newTransaction = new Transaction();
+                newTransaction.setSourceAccount(parts[0]);
+                newTransaction.setDestinationAccount(parts[1]);
+                newTransaction.setAmount(Double.parseDouble(parts[2]));
+
+                
+
+                transactionRepository.save(newTransaction);
+
+
+                output.println("Transaction received: " + transaction);
+            } else if ("2".equals(option)) {
+                // Handle logout
+                output.println("Logged out successfully.");
+                break;
+            } else {
+                output.println("Invalid option selected.");
+            }
+        }
+    }
+
+    private User loginUser(String userName, String password) {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             if (user.getUsername().equals(userName) && user.getPassword().equals(password)) {
