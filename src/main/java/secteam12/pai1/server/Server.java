@@ -36,7 +36,6 @@ public class Server implements CommandLineRunner {
                 System.err.println("Waiting for connection...");
 
                 Socket socket = serverSocket.accept();
-
                 BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
@@ -49,17 +48,24 @@ public class Server implements CommandLineRunner {
 
                 if ("1".equals(option)) {
                     // Handle login
-                    String userName = input.readLine();
-                    String password = input.readLine();
+                    User user = null;
+                    for (int i = 0; i < 3; i++) {
+                        String userName = input.readLine();
+                        String password = input.readLine();
 
-                    User user = loginUser(userName, password);
-                    if (user == null) {
-                        output.println("Invalid login information");
-                    } else {
-                        output.println("Welcome, " + user.getUsername() + "!");
-                        handleAuthenticatedUser(input, output, user);
-                        
+                        System.err.println("Login attempt: " + i);
+                        user = loginUser(userName, password);
+                        if (user == null) {
+                            output.println("Invalid login information");
+                            Thread.sleep(3000);
+                        } else {
+                            output.println("Welcome, " + user.getUsername() + "!");
+                            handleAuthenticatedUser(input, output, user);
+                            break;
+                            
+                        }
                     }
+
                 } else if ("2".equals(option)) {
                     // Handle registration
                     String newUserName = input.readLine();
@@ -103,14 +109,11 @@ public class Server implements CommandLineRunner {
                 newTransaction.setAmount(Double.parseDouble(parts[2]));
 
                 
-
                 transactionRepository.save(newTransaction);
 
 
                 output.println("Transaction received: " + transaction);
             } else if ("1".equals(option)) {
-                // Handle logout
-                output.println("Logged out successfully.");
                 break;
             } else {
                 output.println("Invalid option selected.");
@@ -118,7 +121,7 @@ public class Server implements CommandLineRunner {
         }
     }
 
-    private User loginUser(String userName, String password) {
+    private User loginUser(String userName, String password){
         List<User> users = userRepository.findAll();
         for (User user : users) {
             if (user.getUsername().equals(userName) && user.getPassword().equals(password)) {
