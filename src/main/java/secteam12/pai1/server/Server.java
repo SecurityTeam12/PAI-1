@@ -83,6 +83,7 @@ public class Server implements CommandLineRunner {
         }
     }
 
+    // TODO: considering if wipe password from memory is necessary or recommended
 	private User loginUser(String userName, String password) {
         List<User> users = userRepository.findAll();
 
@@ -97,6 +98,7 @@ public class Server implements CommandLineRunner {
         return null;
     }
 
+    // TODO: considering if wipe password from memory is necessary or recommended
     private boolean registerUser(String userName, String password) {
         if (userRepository.findByUsername(userName) != null) {
             return false; // Username already exists
@@ -123,6 +125,7 @@ public class Server implements CommandLineRunner {
         newUser.setHash(hash);
         newUser.setSalt(saltBase64);
         userRepository.save(newUser);
+
         return true;
     }
 }
