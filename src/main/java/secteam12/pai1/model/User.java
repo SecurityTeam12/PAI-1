@@ -28,7 +28,10 @@ public class User {
     private String username;
 
     @Column(nullable = false)
-    private String password;
+    private String hash;
+
+    @Column(nullable = false)
+    private String salt;
 
 }
 
