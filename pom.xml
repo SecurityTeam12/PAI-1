@@ -11,6 +11,7 @@
 	<groupId>secteam12</groupId>
 	<artifactId>pai1</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>pai1</name>
 	<description>PA1 by SecTeam12</description>
 	<url/>
@@ -20,6 +21,11 @@
 	<developers>
 		<developer/>
 	</developers>
+	<modules>
+		<module>salt_server</module>
+		<module>server</module>
+		<module>client</module>
+	</modules>
 	<scm>
 		<connection/>
 		<developerConnection/>
@@ -49,6 +55,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>de.mkammerer</groupId>
+			<artifactId>argon2-jvm</artifactId>
+			<version>2.11</version>
 		</dependency>
 	</dependencies>
 
