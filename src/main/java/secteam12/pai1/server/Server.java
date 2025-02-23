@@ -7,6 +7,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +18,14 @@ import org.springframework.stereotype.Component;
 import secteam12.pai1.model.User;
 import secteam12.pai1.repository.UserRepository;
 
+import de.mkammerer.argon2.Argon2;
+import de.mkammerer.argon2.Argon2Factory;
+
 @Component
 public class Server implements CommandLineRunner {
 
     @Autowired
     UserRepository userRepository;
-
 
     @Override
     public void run(String... args) throws IOException {
@@ -81,8 +85,12 @@ public class Server implements CommandLineRunner {
 
 	private User loginUser(String userName, String password) {
         List<User> users = userRepository.findAll();
+
+        // Argon2 setup for password hashing
+        Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+
         for (User user : users) {
-            if (user.getUsername().equals(userName) && user.getPassword().equals(password)) {
+            if (user.getUsername().equals(userName) && argon2.verify(user.getHash(), (password + user.getSalt()).toCharArray())) {
                 return user;
             }
         }
@@ -93,9 +101,27 @@ public class Server implements CommandLineRunner {
         if (userRepository.findByUsername(userName) != null) {
             return false; // Username already exists
         }
+
+        // Argon2 setup for password hashing
+        Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+        int iterations = 10;
+        int memory = 65536;
+        int parallelism = 1;
+
+        // Generating a random salt
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        String saltBase64 = Base64.getEncoder().encodeToString(salt);
+
+
+
+        // Hash password
+        String hash = argon2.hash(iterations, memory, parallelism, (password + saltBase64).toCharArray());
+
         User newUser = new User();
         newUser.setUsername(userName);
-        newUser.setPassword(password);
+        newUser.setHash(hash);
+        newUser.setSalt(saltBase64);
         userRepository.save(newUser);
         return true;
     }
