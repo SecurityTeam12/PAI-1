@@ -11,6 +11,10 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -34,7 +38,7 @@ public class Server implements CommandLineRunner {
     TransactionRepository transactionRepository;
 
     @Override
-    public void run(String... args) throws IOException {
+    public void run(String... args) throws Exception {
         ServerSocket serverSocket = new ServerSocket(3343);
         System.err.println("Server started and waiting for connections...");
 
@@ -90,7 +94,7 @@ public class Server implements CommandLineRunner {
         }
     }
 
-    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws IOException {
+    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
             output.println("Select an option:");
 
@@ -98,22 +102,39 @@ public class Server implements CommandLineRunner {
     
             if ("0".equals(option)) {
                 // Handle transaction
+                String nonce =  MACUtil.generateNonce();
+                output.println(nonce);
+                String encodedKey = input.readLine();
+                byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                String receivedMAC = input.readLine();
                 String transaction = input.readLine();
-                String[] parts = transaction.split(",");
-                if (parts.length != 3) {
-                    output.println("Invalid transaction format.");
-                    continue;
+
+                if (MACUtil.verifyMAC(transaction, nonce, key, receivedMAC)) {
+                    String[] parts = transaction.split(",");
+
+                    if (parts.length != 3) {
+                        output.println("Invalid transaction format.");
+                        continue;
+                    }
+                    
+                    System.out.println("Nonce " + nonce);
+                    System.out.println("Key: " + key.toString());
+                    System.out.println("Mac: " + receivedMAC);
+
+                    Transaction newTransaction = new Transaction();
+                    newTransaction.setSourceAccount(parts[0]);
+                    newTransaction.setDestinationAccount(parts[1]);
+                    newTransaction.setAmount(Double.parseDouble(parts[2]));
+
+                    
+                    transactionRepository.save(newTransaction);
+                    output.println("Transaction received: " + transaction);
+    
+                } else {
+                    output.println("Invalid MAC. Transaction rejected.");
                 }
-                Transaction newTransaction = new Transaction();
-                newTransaction.setSourceAccount(parts[0]);
-                newTransaction.setDestinationAccount(parts[1]);
-                newTransaction.setAmount(Double.parseDouble(parts[2]));
-
                 
-                transactionRepository.save(newTransaction);
-
-
-                output.println("Transaction received: " + transaction);
             } else if ("1".equals(option)) {
                 break;
             } else {
