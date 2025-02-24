@@ -2,6 +2,7 @@ package secteam12.pai1.client;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Base64;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -99,7 +100,13 @@ public class ClientSocket {
 
                 KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
                 SecretKey key = keyGenerator.generateKey();
+                String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
                 String secureMac = MACUtil.generateMAC(transaction, nonce,key);
+                System.out.println("Nonce " + nonce);
+                System.out.println("Key: " + key.toString());
+                System.out.println("Mac: " + secureMac);
+                output.println(encodedKey);
+                output.println(secureMac);
                 output.println(transaction);
 
                 // read response from server
