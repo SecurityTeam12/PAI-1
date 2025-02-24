@@ -35,7 +35,7 @@ public class generatePasswords {
 
             System.out.println("Archivo SQL generado en: " + filePath);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error generateSqlInsert: " +  e.getMessage() );
         }
     }
 
