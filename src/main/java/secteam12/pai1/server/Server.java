@@ -15,9 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import secteam12.pai1.model.Transaction;
 import secteam12.pai1.model.User;
+import secteam12.pai1.repository.TransactionRepository;
 import secteam12.pai1.repository.UserRepository;
 
+import secteam12.pai1.utils.MACUtil;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 
@@ -26,6 +29,9 @@ public class Server implements CommandLineRunner {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    TransactionRepository transactionRepository;
 
     @Override
     public void run(String... args) throws IOException {
@@ -57,6 +63,7 @@ public class Server implements CommandLineRunner {
                         output.println("Invalid login information");
                     } else {
                         output.println("Welcome, " + user.getUsername() + "!");
+                        handleAuthenticatedUser(input, output, user);
                     }
                 } else if ("2".equals(option)) {
                     // Handle registration
@@ -83,7 +90,39 @@ public class Server implements CommandLineRunner {
         }
     }
 
-	private User loginUser(String userName, String password) {
+    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws IOException {
+        while (true) {
+            output.println("Select an option:");
+
+            String option = input.readLine();
+    
+            if ("0".equals(option)) {
+                // Handle transaction
+                String transaction = input.readLine();
+                String[] parts = transaction.split(",");
+                if (parts.length != 3) {
+                    output.println("Invalid transaction format.");
+                    continue;
+                }
+                Transaction newTransaction = new Transaction();
+                newTransaction.setSourceAccount(parts[0]);
+                newTransaction.setDestinationAccount(parts[1]);
+                newTransaction.setAmount(Double.parseDouble(parts[2]));
+
+                
+                transactionRepository.save(newTransaction);
+
+
+                output.println("Transaction received: " + transaction);
+            } else if ("1".equals(option)) {
+                break;
+            } else {
+                output.println("Invalid option selected.");
+            }
+        }
+    }
+
+    private User loginUser(String userName, String password){
         List<User> users = userRepository.findAll();
 
         // Argon2 setup for password hashing
