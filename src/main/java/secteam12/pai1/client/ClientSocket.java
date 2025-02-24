@@ -2,9 +2,15 @@ package secteam12.pai1.client;
 
 import java.io.*;
 import java.net.Socket;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.swing.JOptionPane;
 
+import secteam12.pai1.utils.MACUtil;
+
 public class ClientSocket {
+    private static final String HMAC_SHA512 = "HmacSHA512";
 
     public static void main(String[] args) throws Exception{
         try {
@@ -76,7 +82,7 @@ public class ClientSocket {
         }
     }
 
-    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws IOException {
+    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws Exception {
         while (true) {
             // read and display authenticated user menu options from server
 
@@ -89,6 +95,11 @@ public class ClientSocket {
             if (option == 0) {
                 // Handle transaction
                 String transaction = JOptionPane.showInputDialog("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
+                String nonce  =  input.readLine();
+
+                KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
+                SecretKey key = keyGenerator.generateKey();
+                String secureMac = MACUtil.generateMAC(transaction, nonce,key);
                 output.println(transaction);
 
                 // read response from server
