@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import secteam12.pai1.model.User;
 import secteam12.pai1.repository.TransactionRepository;
 import secteam12.pai1.repository.UserRepository;
+import secteam12.pai1.utils.MACUtil;
 import secteam12.pai1.utils.PwnedPasswordChecker;
 import secteam12.pai1.model.Transaction;
 
@@ -97,6 +98,7 @@ public class Server implements CommandLineRunner {
     
             if ("0".equals(option)) {
                 // Handle transaction
+                output.println(MACUtil.generateNonce());
                 String transaction = input.readLine();
                 String[] parts = transaction.split(",");
                 if (parts.length != 3) {
