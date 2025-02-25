@@ -3,10 +3,12 @@ package secteam12.pai1.client;
 import java.io.*;
 import java.net.Socket;
 import java.util.Base64;
+import java.util.Map;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.swing.JOptionPane;
+
 
 import secteam12.pai1.utils.MACUtil;
 
@@ -37,9 +39,17 @@ public class ClientSocket {
 
                 if ("1".equals(option)) {
                     for (int i = 0; i < 3; i++) {
+                        String nonce  =  input.readLine();
                         String userName = JOptionPane.showInputDialog("Enter username:");
-                        output.println(userName);
                         String password = JOptionPane.showInputDialog("Enter password:");
+
+                        Map<String,String> secureTransaction = secureTransaction(nonce, userName + password);
+                        String encodedKey = secureTransaction.get("EncodedKey");
+                        String secureMac = secureTransaction.get("SecureMac");
+
+                        output.println(encodedKey);
+                        output.println(secureMac);
+                        output.println(userName);
                         output.println(password);
 
                         // read response from server
@@ -56,9 +66,18 @@ public class ClientSocket {
 
                 } else if ("2".equals(option)) {
                     // Handle registration
+                    String nonce  =  input.readLine();
                     String newUserName = JOptionPane.showInputDialog("Enter new username:");
-                    output.println(newUserName);
                     String newPassword = JOptionPane.showInputDialog("Enter new password:");
+
+
+                    Map<String,String> secureTransaction = secureTransaction(nonce, newUserName + newPassword);
+                    String encodedKey = secureTransaction.get("EncodedKey");
+                    String secureMac = secureTransaction.get("SecureMac");
+
+                    output.println(encodedKey);
+                    output.println(secureMac);
+                    output.println(newUserName);
                     output.println(newPassword);
                     
                     // read response from server
@@ -98,10 +117,9 @@ public class ClientSocket {
                 String transaction = JOptionPane.showInputDialog("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
                 String nonce  =  input.readLine();
 
-                KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
-                SecretKey key = keyGenerator.generateKey();
-                String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
-                String secureMac = MACUtil.generateMAC(transaction, nonce,key);
+                Map<String,String> secureTransaction = secureTransaction(nonce, transaction);
+                String encodedKey = secureTransaction.get("EncodedKey");
+                String secureMac = secureTransaction.get("SecureMac");
                 
                 output.println(encodedKey);
                 output.println(secureMac);
@@ -121,4 +139,14 @@ public class ClientSocket {
             }
         }
     }
+
+    private static Map<String,String> secureTransaction(String nonce, String data) throws Exception{
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
+        SecretKey key = keyGenerator.generateKey();
+        String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
+        String secureMac = MACUtil.generateMAC(data, nonce,key);
+
+        return Map.of("EncodedKey", encodedKey, "SecureMac", secureMac);
+    }
+    
 }
