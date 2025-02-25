@@ -61,28 +61,32 @@ public class Server implements CommandLineRunner {
                 if ("1".equals(option)) {
                     // Handle login
 
-                    String nonce =  MACUtil.generateNonce();
-                    output.println(nonce);
-                    
-                    String encodedKey = input.readLine();
-                    byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-                    SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
-                    String receivedMAC = input.readLine();
+                    for(int i = 0; i < 3;i ++){
 
-                    String userName = input.readLine();
-                    String password = input.readLine();
-
-
-                    if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
-                        User user = loginUser(userName, password);
-                        if (user == null) {
-                            output.println("Invalid login information");
-                        } else {
-                            output.println("Welcome, " + user.getUsername() + "!");
-                            handleAuthenticatedUser(input, output, user);
+                        String nonce =  MACUtil.generateNonce();
+                        output.println(nonce);
+                        
+                        String encodedKey = input.readLine();
+                        byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                        SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                        String receivedMAC = input.readLine();
+    
+                        String userName = input.readLine();
+                        String password = input.readLine();
+    
+    
+                        if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
+                            User user = loginUser(userName, password);
+                            if (user == null) {
+                                output.println("Invalid login information");
+                            } else {
+                                output.println("Welcome, " + user.getUsername() + "!");
+                                handleAuthenticatedUser(input, output, user);
+                                break;
+                            }
+                        }else {
+                            output.println("Invalid MAC. Transaction rejected.");
                         }
-                    }else {
-                        output.println("Invalid MAC. Transaction rejected.");
                     }
 
                 } else if ("2".equals(option)) {

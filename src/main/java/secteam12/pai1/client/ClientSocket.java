@@ -66,11 +66,19 @@ public class ClientSocket {
 
                 } else if ("2".equals(option)) {
                     // Handle registration
+                    String newUserName = "";
+                    String newPassword = "";
+                    while(true){
+                        newUserName = JOptionPane.showInputDialog("Enter new username:");
+                        newPassword = JOptionPane.showInputDialog("Enter new password:");
+                        if(!checkPasswordSecurity(newPassword)){
+                            JOptionPane.showMessageDialog(null, "Password does not meet security requirements.");
+                        }else{
+                            break;
+                        }
+                    }
+
                     String nonce  =  input.readLine();
-                    String newUserName = JOptionPane.showInputDialog("Enter new username:");
-                    String newPassword = JOptionPane.showInputDialog("Enter new password:");
-
-
                     Map<String,String> secureTransaction = secureTransaction(nonce, newUserName + newPassword);
                     String encodedKey = secureTransaction.get("EncodedKey");
                     String secureMac = secureTransaction.get("SecureMac");
@@ -147,6 +155,21 @@ public class ClientSocket {
         String secureMac = MACUtil.generateMAC(data, nonce,key);
 
         return Map.of("EncodedKey", encodedKey, "SecureMac", secureMac);
+    }
+
+    private static Boolean checkPasswordSecurity(String password) throws Exception {
+        Boolean hasUppercase = !password.equals(password.toLowerCase());
+        Boolean hasLowercase = !password.equals(password.toUpperCase());
+        Boolean hasNumber = password.matches(".*\\d.*");
+        Boolean hasSpecialChar = !password.matches("[A-Za-z0-9 ]*");
+        Boolean hasCorrectLength = password.length() >= 8;
+
+        if (hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasCorrectLength) {
+            return true;
+        }
+        return false;
+
+
     }
     
 }
