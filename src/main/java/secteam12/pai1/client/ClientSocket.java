@@ -102,9 +102,7 @@ public class ClientSocket {
                 SecretKey key = keyGenerator.generateKey();
                 String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
                 String secureMac = MACUtil.generateMAC(transaction, nonce,key);
-                System.out.println("Nonce " + nonce);
-                System.out.println("Key: " + key.toString());
-                System.out.println("Mac: " + secureMac);
+                
                 output.println(encodedKey);
                 output.println(secureMac);
                 output.println(transaction);
