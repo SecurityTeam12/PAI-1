@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import secteam12.pai1.client.MacUtil;
 import secteam12.pai1.model.Transaction;
 import secteam12.pai1.model.User;
 import secteam12.pai1.repository.TransactionRepository;
@@ -59,26 +60,52 @@ public class Server implements CommandLineRunner {
 
                 if ("1".equals(option)) {
                     // Handle login
+
+                    String nonce =  MACUtil.generateNonce();
+                    output.println(nonce);
+                    
+                    String encodedKey = input.readLine();
+                    byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                    SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                    String receivedMAC = input.readLine();
+
                     String userName = input.readLine();
                     String password = input.readLine();
 
-                    User user = loginUser(userName, password);
-                    if (user == null) {
-                        output.println("Invalid login information");
-                    } else {
-                        output.println("Welcome, " + user.getUsername() + "!");
-                        handleAuthenticatedUser(input, output, user);
+
+                    if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
+                        User user = loginUser(userName, password);
+                        if (user == null) {
+                            output.println("Invalid login information");
+                        } else {
+                            output.println("Welcome, " + user.getUsername() + "!");
+                            handleAuthenticatedUser(input, output, user);
+                        }
+                    }else {
+                        output.println("Invalid MAC. Transaction rejected.");
                     }
+
                 } else if ("2".equals(option)) {
                     // Handle registration
+                    String nonce =  MACUtil.generateNonce();
+                    output.println(nonce);
+                    
+                    String encodedKey = input.readLine();
+                    byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                    SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                    String receivedMAC = input.readLine();
+
                     String newUserName = input.readLine();
                     String newPassword = input.readLine();
 
-                    if (registerUser(newUserName, newPassword)) {
-                        output.println("Registration successful. You can now log in.");
-                    } else {
-                        output.println("Registration failed. Username already exists.");
+                    if(MACUtil.verifyMAC(newUserName+newPassword, nonce, key, receivedMAC)){
+                        if (registerUser(newUserName, newPassword)) {
+                            output.println("Registration successful. You can now log in.");
+                        } else {
+                            output.println("Registration failed. Username already exists.");
+                        }
                     }
+                    
                 } else {
                     output.println("Invalid option selected.");
                 }
@@ -104,6 +131,7 @@ public class Server implements CommandLineRunner {
                 // Handle transaction
                 String nonce =  MACUtil.generateNonce();
                 output.println(nonce);
+
                 String encodedKey = input.readLine();
                 byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
                 SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
@@ -118,9 +146,6 @@ public class Server implements CommandLineRunner {
                         continue;
                     }
                     
-                    System.out.println("Nonce " + nonce);
-                    System.out.println("Key: " + key.toString());
-                    System.out.println("Mac: " + receivedMAC);
 
                     Transaction newTransaction = new Transaction();
                     newTransaction.setSourceAccount(parts[0]);
