@@ -51,14 +51,9 @@ public class Server implements CommandLineRunner {
                 BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-                // Send menu options to client
-                output.println("1. Login");
-                output.println("2. Register");
-                output.println("Enter your choice:");
-
                 String option = input.readLine();
 
-                if ("1".equals(option)) {
+                if ("0".equals(option)) {
                     // Handle login
 
                     for(int i = 0; i < 3;i ++){
@@ -72,7 +67,13 @@ public class Server implements CommandLineRunner {
                         String receivedMAC = input.readLine();
     
                         String userName = input.readLine();
+                        if (userName == null) {
+                            break;
+                        }
                         String password = input.readLine();
+                        if (password == null) {
+                            break;
+                        }
     
     
                         if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
@@ -89,7 +90,7 @@ public class Server implements CommandLineRunner {
                         }
                     }
 
-                } else if ("2".equals(option)) {
+                } else if ("1".equals(option)) {
                     // Handle registration
                     String nonce =  MACUtil.generateNonce();
                     output.println(nonce);
@@ -101,6 +102,13 @@ public class Server implements CommandLineRunner {
 
                     String newUserName = input.readLine();
                     String newPassword = input.readLine();
+                    if(newPassword.equals("null") || newUserName.equals("null")){
+                        input.close();
+                        output.close();
+                        socket.close();
+                        System.err.println("Client disconnected.");
+                        continue;
+                    }
 
                     if(MACUtil.verifyMAC(newUserName+newPassword, nonce, key, receivedMAC)){
                         if (registerUser(newUserName, newPassword)) {
@@ -110,8 +118,6 @@ public class Server implements CommandLineRunner {
                         }
                     }
                     
-                } else {
-                    output.println("Invalid option selected.");
                 }
 
                 input.close();
@@ -123,16 +129,22 @@ public class Server implements CommandLineRunner {
                 e.printStackTrace();
             }
         }
+        
     }
 
     private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
-            output.println("Select an option:");
-
             String option = input.readLine();
     
             if ("0".equals(option)) {
                 // Handle transaction
+
+                String transaction = input.readLine();
+
+                if (transaction.equals("null")) {
+                    continue;
+                }
+
                 String nonce =  MACUtil.generateNonce();
                 output.println(nonce);
 
@@ -140,7 +152,7 @@ public class Server implements CommandLineRunner {
                 byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
                 SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
                 String receivedMAC = input.readLine();
-                String transaction = input.readLine();
+                
 
                 if (MACUtil.verifyMAC(transaction, nonce, key, receivedMAC)) {
                     String[] parts = transaction.split(",");
