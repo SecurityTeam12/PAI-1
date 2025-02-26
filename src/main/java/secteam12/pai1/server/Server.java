@@ -10,16 +10,12 @@ import java.net.Socket;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
-
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-
-import secteam12.pai1.client.MacUtil;
 import secteam12.pai1.model.Transaction;
 import secteam12.pai1.model.User;
 import secteam12.pai1.repository.TransactionRepository;
@@ -134,11 +130,11 @@ public class Server implements CommandLineRunner {
 
     private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
+            String transactionsNumber = userRepository.findUserTransactionLenghtByUserId(user.getId()).toString();
+            output.println(transactionsNumber);
             String option = input.readLine();
     
             if ("0".equals(option)) {
-                // Handle transaction
-
                 String transaction = input.readLine();
 
                 if (transaction.equals("null")) {
@@ -167,6 +163,7 @@ public class Server implements CommandLineRunner {
                     newTransaction.setSourceAccount(parts[0]);
                     newTransaction.setDestinationAccount(parts[1]);
                     newTransaction.setAmount(Double.parseDouble(parts[2]));
+                    newTransaction.setUser(user);
 
                     
                     transactionRepository.save(newTransaction);
