@@ -1,16 +1,48 @@
 package secteam12.pai1.client;
 
+import secteam12.pai1.utils.MACUtil;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+import javax.swing.*;
 import java.io.*;
-import java.net.Socket;
-import javax.swing.JOptionPane;
+import java.security.KeyStore;
+import java.util.Base64;
+import java.util.Map;
 
 public class ClientSocket {
+    private static final String HMAC_SHA512 = "HmacSHA512";
 
     public static void main(String[] args) throws Exception{
+
+        // Initializing an SSL/TLS connection in order to encrypt the communication
+        char[] truststorePassword = "keystore".toCharArray();
+
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        try (InputStream trustStoreIS = new FileInputStream("Application\\src\\main\\resources\\client_truststore.p12")) {
+            trustStore.load(trustStoreIS, truststorePassword);
+        }
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmf.getTrustManagers(), null);
+
+        SSLSocketFactory factory = sslContext.getSocketFactory();
+
         try {
             // connect to server
             while(true){
-                Socket socket = new Socket("localhost", 3343);
+
+                // create SSLSocket and initializing handshake
+                SSLSocket socket = (SSLSocket) factory.createSocket("localhost", 3343);
+                socket.startHandshake();
+
                 // create PrintWriter for sending data to server
                 PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
@@ -30,9 +62,17 @@ public class ClientSocket {
 
                 if ("1".equals(option)) {
                     for (int i = 0; i < 3; i++) {
+                        String nonce  =  input.readLine();
                         String userName = JOptionPane.showInputDialog("Enter username:");
-                        output.println(userName);
                         String password = JOptionPane.showInputDialog("Enter password:");
+
+                        Map<String,String> secureTransaction = secureTransaction(nonce, userName + password);
+                        String encodedKey = secureTransaction.get("EncodedKey");
+                        String secureMac = secureTransaction.get("SecureMac");
+
+                        output.println(encodedKey);
+                        output.println(secureMac);
+                        output.println(userName);
                         output.println(password);
 
                         // read response from server
@@ -49,18 +89,27 @@ public class ClientSocket {
 
                 } else if ("2".equals(option)) {
                     // Handle registration
+                    String nonce  =  input.readLine();
                     String newUserName = JOptionPane.showInputDialog("Enter new username:");
-                    output.println(newUserName);
                     String newPassword = JOptionPane.showInputDialog("Enter new password:");
+
+
+                    Map<String,String> secureTransaction = secureTransaction(nonce, newUserName + newPassword);
+                    String encodedKey = secureTransaction.get("EncodedKey");
+                    String secureMac = secureTransaction.get("SecureMac");
+
+                    output.println(encodedKey);
+                    output.println(secureMac);
+                    output.println(newUserName);
                     output.println(newPassword);
-                    
+
                     // read response from server
                     String response = input.readLine();
                     JOptionPane.showMessageDialog(null, response);
 
                 } else {
-                    String resposne = input.readLine();
-                    JOptionPane.showMessageDialog(null, resposne);
+                    String response = input.readLine();
+                    JOptionPane.showMessageDialog(null, response);
                     break;
                 }
 
@@ -69,14 +118,14 @@ public class ClientSocket {
                 input.close();
                 socket.close();
             }
-            
+
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws IOException {
+    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws Exception {
         while (true) {
             // read and display authenticated user menu options from server
 
@@ -89,6 +138,14 @@ public class ClientSocket {
             if (option == 0) {
                 // Handle transaction
                 String transaction = JOptionPane.showInputDialog("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
+                String nonce  =  input.readLine();
+
+                Map<String,String> secureTransaction = secureTransaction(nonce, transaction);
+                String encodedKey = secureTransaction.get("EncodedKey");
+                String secureMac = secureTransaction.get("SecureMac");
+
+                output.println(encodedKey);
+                output.println(secureMac);
                 output.println(transaction);
 
                 // read response from server
@@ -105,4 +162,14 @@ public class ClientSocket {
             }
         }
     }
+
+    private static Map<String,String> secureTransaction(String nonce, String data) throws Exception{
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
+        SecretKey key = keyGenerator.generateKey();
+        String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
+        String secureMac = MACUtil.generateMAC(data, nonce,key);
+
+        return Map.of("EncodedKey", encodedKey, "SecureMac", secureMac);
+    }
+
 }

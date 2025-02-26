@@ -12,10 +12,7 @@ import lombok.Setter;
 public class Salt {
 
     @Id
-	@SequenceGenerator(name = "entity_seq", 
-        sequenceName = "entity_sequence", 
-        initialValue = 100)
-	@GeneratedValue(strategy = GenerationType.SEQUENCE	, generator = "entity_seq")
+	@Column(nullable = false)
 	protected Integer id;
 
     @Column(nullable = false)
