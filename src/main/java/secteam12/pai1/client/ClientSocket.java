@@ -125,7 +125,10 @@ public class ClientSocket {
         while (true) {
             // read and display authenticated user menu options from server
 
-            String menu = welcome + "\n" +  "Select an option";
+            String transactionNumber = input.readLine();
+            String transactionNumberMessage = "You sent " + transactionNumber + " transactions.";
+
+            String menu = welcome + "\n" + transactionNumberMessage + "\n" +  "Select an option";
             int option = JOptionPane.showOptionDialog(null, menu, "Select an option", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Perform a Transaction", "Logout" },null);
 
             // send selected option to server
