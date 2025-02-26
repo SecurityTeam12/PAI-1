@@ -13,6 +13,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(t) FROM User u JOIN u.transactions t WHERE u.id = :id")
     Integer findUserTransactionLenghtByUserId(Integer id);
 
-
     RowSet getByid(Integer id);
 }
