@@ -33,7 +33,7 @@ public class ClientSocket {
         char[] truststorePassword = "keystore".toCharArray();
 
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        try (InputStream trustStoreIS = new FileInputStream("Application\\src\\main\\resources\\client_truststore.p12")) {
+        try (InputStream trustStoreIS = new FileInputStream("Application/src/main/resources/client_truststore.p12")) {
             trustStore.load(trustStoreIS, truststorePassword);
         }
 
@@ -154,7 +154,7 @@ public class ClientSocket {
         }
     }
 
-    private static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws Exception {
+    public static void handleAuthenticatedUser(BufferedReader input, PrintWriter output,String welcome) throws Exception {
         while (true) {
             // read and display authenticated user menu options from server
 
@@ -198,7 +198,7 @@ public class ClientSocket {
         }
     }
 
-    private static Map<String,String> secureTransaction(String nonce, String data) throws Exception{
+    protected static Map<String,String> secureTransaction(String nonce, String data) throws Exception{
         KeyGenerator keyGenerator = KeyGenerator.getInstance(HMAC_SHA512);
         SecretKey key = keyGenerator.generateKey();
         String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
@@ -207,12 +207,13 @@ public class ClientSocket {
         return Map.of("EncodedKey", encodedKey, "SecureMac", secureMac);
     }
 
-    private static Boolean checkPasswordSecurity(String password) throws Exception {
+    protected static Boolean checkPasswordSecurity(String password) throws Exception {
         Boolean hasUppercase = !password.equals(password.toLowerCase());
         Boolean hasLowercase = !password.equals(password.toUpperCase());
         Boolean hasNumber = password.matches(".*\\d.*");
         Boolean hasSpecialChar = !password.matches("[A-Za-z0-9 ]*");
         Boolean hasCorrectLength = password.length() >= 8;
+
 
         if (hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasCorrectLength) {
             return true;

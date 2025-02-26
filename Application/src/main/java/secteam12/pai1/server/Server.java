@@ -38,15 +38,12 @@ public class Server implements CommandLineRunner {
     private Resource keyStoreResource;
 
     @Value("classpath:saltserver_truststore.p12")
-    private Resource trustStoreResource;
+    public Resource trustStoreResource;
 
     @Override
     public void run(String... args) throws Exception {
-
         SSLServerSocket serverSocket = null;
-
-        try {
-            // Initializing the server socket with SSL/TLS
+        try{
             char[] keystorePassword = "keystore".toCharArray();
 
             KeyStore keyStore = KeyStore.getInstance("JKS");
@@ -63,7 +60,6 @@ public class Server implements CommandLineRunner {
             serverSocket = (SSLServerSocket) ssf.createServerSocket(3343);
 
             System.err.println("Server started and waiting for connections...");
-
             while (true) {
                 try {
                     SSLSocket socket = (SSLSocket) serverSocket.accept();
@@ -72,43 +68,50 @@ public class Server implements CommandLineRunner {
                     BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-                    // Send menu options to client
-                    output.println("1. Login");
-                    output.println("2. Register");
-                    output.println("Enter your choice:");
-
                     String option = input.readLine();
 
-                    if ("1".equals(option)) {
+                    if ("0".equals(option)) {
                         // Handle login
 
-                        String nonce =  MACUtil.generateNonce();
-                        output.println(nonce);
+                        for(int i = 0; i < 3;i ++){
 
-                        String encodedKey = input.readLine();
-                        byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-                        SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
-                        String receivedMAC = input.readLine();
-
-                        String userName = input.readLine();
-                        String password = input.readLine();
-
-                        if(MACUtil.verifyMAC(userName + password, nonce, key, receivedMAC)) {
-                            User user = loginUser(userName, password);
-                            if (user == null) {
-                                output.println("Invalid login information");
-                            } else {
-                                output.println("Welcome, " + user.getUsername() + "!");
+                            String nonce =  MACUtil.generateNonce();
+                            output.println(nonce);
+                            
+                            String encodedKey = input.readLine();
+                            byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                            SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                            String receivedMAC = input.readLine();
+        
+                            String userName = input.readLine();
+                            if (userName == null) {
+                                break;
                             }
-                        } else {
-                            output.println("Invalid MAC. Transaction rejected.");
+                            String password = input.readLine();
+                            if (password == null) {
+                                break;
+                            }
+        
+        
+                            if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
+                                User user = loginUser(userName, password);
+                                if (user == null) {
+                                    output.println("Invalid login information");
+                                } else {
+                                    output.println("Welcome, " + user.getUsername() + "!");
+                                    handleAuthenticatedUser(input, output, user);
+                                    break;
+                                }
+                            }else {
+                                output.println("Invalid MAC. Transaction rejected.");
+                            }
                         }
 
-                    } else if ("2".equals(option)) {
+                    } else if ("1".equals(option)) {
                         // Handle registration
-                        String nonce = MACUtil.generateNonce();
+                        String nonce =  MACUtil.generateNonce();
                         output.println(nonce);
-
+                        
                         String encodedKey = input.readLine();
                         byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
                         SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
@@ -116,6 +119,14 @@ public class Server implements CommandLineRunner {
 
                         String newUserName = input.readLine();
                         String newPassword = input.readLine();
+                        if(newPassword.equals("null") || newUserName.equals("null")){
+                            input.close();
+                            output.close();
+                            socket.close();
+                            System.err.println("Client disconnected.");
+                            continue;
+                        }
+
 
                         if (MACUtil.verifyMAC(newUserName + newPassword, nonce, key, receivedMAC)) {
                             if (registerUser(newUserName, newPassword) == 1) {
@@ -126,8 +137,7 @@ public class Server implements CommandLineRunner {
                                 output.println("Registration failed. Server not available. Contact the Admin if this error persists.");
                             }
                         }
-                    } else {
-                        output.println("Invalid option selected.");
+                        
                     }
 
                     input.close();
@@ -139,23 +149,29 @@ public class Server implements CommandLineRunner {
                     e.printStackTrace();
                 }
             }
-        } catch (IOException e) {
+        }catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (serverSocket != null) {
                 serverSocket.close();
             }
         }
+        
     }
 
-    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
+    public void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
-            output.println("Select an option:");
-
+            String transactionsNumber = userRepository.findUserTransactionLenghtByUserId(user.getId()).toString();
+            output.println(transactionsNumber);
             String option = input.readLine();
-
+    
             if ("0".equals(option)) {
-                // Handle transaction
+                String transaction = input.readLine();
+
+                if (transaction.equals("null")) {
+                    continue;
+                }
+
                 String nonce =  MACUtil.generateNonce();
                 output.println(nonce);
 
@@ -163,7 +179,7 @@ public class Server implements CommandLineRunner {
                 byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
                 SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
                 String receivedMAC = input.readLine();
-                String transaction = input.readLine();
+                
 
                 if (MACUtil.verifyMAC(transaction, nonce, key, receivedMAC)) {
                     String[] parts = transaction.split(",");
@@ -172,21 +188,22 @@ public class Server implements CommandLineRunner {
                         output.println("Invalid transaction format.");
                         continue;
                     }
-
+                    
 
                     Transaction newTransaction = new Transaction();
                     newTransaction.setSourceAccount(parts[0]);
                     newTransaction.setDestinationAccount(parts[1]);
                     newTransaction.setAmount(Double.parseDouble(parts[2]));
+                    newTransaction.setUser(user);
 
-
+                    
                     transactionRepository.save(newTransaction);
                     output.println("Transaction received: " + transaction);
-
+    
                 } else {
                     output.println("Invalid MAC. Transaction rejected.");
                 }
-
+                
             } else if ("1".equals(option)) {
                 break;
             } else {
@@ -194,8 +211,7 @@ public class Server implements CommandLineRunner {
             }
         }
     }
-
-	private User loginUser(String userName, String password) throws Exception {
+	public User loginUser(String userName, String password) throws Exception {
         List<User> users = userRepository.findAll();
 
         // Argon2 setup for password hashing
@@ -210,7 +226,7 @@ public class Server implements CommandLineRunner {
         return null;
     }
 
-    private int registerUser(String userName, String password) throws Exception {
+    public int registerUser(String userName, String password) throws Exception {
         if (userRepository.findByUsername(userName) != null) {
             return -1; // Username already exists
         }
@@ -226,24 +242,28 @@ public class Server implements CommandLineRunner {
         new SecureRandom().nextBytes(salt);
         String saltBase64 = Base64.getEncoder().encodeToString(salt);
 
-
-
         // Hash password
         String hash = argon2.hash(iterations, memory, parallelism, (password + saltBase64).toCharArray());
 
         User newUser = new User();
         newUser.setUsername(userName);
         newUser.setHash(hash);
-        userRepository.save(newUser);
+        // Ensure the ID is set before saving the user
+        newUser = userRepository.save(newUser);
+        if (newUser == null || newUser.getId() == null) {
+            return -2; // Failed to save user
+        }
         if(!saveSalt(newUser.getId(), saltBase64)) {
             userRepository.delete(newUser);
             return -2;
         }
         return 1;
     }
-
-    private String getSalt(int id) throws Exception {
+    public String getSalt(int id) throws Exception {
         String salt = "";
+        if (trustStoreResource == null) {
+            throw new IllegalStateException("TrustStore resource is not initialized.");
+        }
         try {
             // Initializing an SSL/TLS connection in order to encrypt the communication
             char[] truststorePassword = "keystore".toCharArray();
@@ -289,7 +309,7 @@ public class Server implements CommandLineRunner {
         return salt;
     }
 
-    private boolean saveSalt(int userID, String salt) throws Exception {
+    public boolean saveSalt(int userID, String salt) throws Exception {
         try {
             // Initializing an SSL/TLS connection in order to encrypt the communication
             char[] truststorePassword = "keystore".toCharArray();
