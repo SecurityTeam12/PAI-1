@@ -5,6 +5,8 @@ import java.net.Socket;
 import java.security.*;
 import java.util.Base64;
 import java.util.List;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,15 +74,12 @@ public class Server implements CommandLineRunner {
                     BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-                    // Send menu options to client
-                    output.println("1. Login");
-                    output.println("2. Register");
-                    output.println("Enter your choice:");
-
                     String option = input.readLine();
 
-                    if ("1".equals(option)) {
+                    if ("0".equals(option)) {
                         // Handle login
+
+                    for(int i = 0; i < 3;i ++){
 
                         String nonce =  MACUtil.generateNonce();
                         output.println(nonce);
@@ -91,31 +90,48 @@ public class Server implements CommandLineRunner {
                         String receivedMAC = input.readLine();
 
                         String userName = input.readLine();
+                        if (userName == null) {
+                            break;
+                        }
                         String password = input.readLine();
+                        if (password == null) {
+                            break;
+                        }
 
-                        if(MACUtil.verifyMAC(userName + password, nonce, key, receivedMAC)) {
+
+                        if(MACUtil.verifyMAC(userName+password, nonce, key, receivedMAC)){
                             User user = loginUser(userName, password);
                             if (user == null) {
                                 output.println("Invalid login information");
                             } else {
                                 output.println("Welcome, " + user.getUsername() + "!");
+                                handleAuthenticatedUser(input, output, user);
+                                break;
                             }
                         } else {
                             output.println("Invalid MAC. Transaction rejected.");
                         }
+                    }
 
-                    } else if ("2".equals(option)) {
-                        // Handle registration
-                        String nonce = MACUtil.generateNonce();
-                        output.println(nonce);
+                } else if ("1".equals(option)) {
+                    // Handle registration
+                    String nonce =  MACUtil.generateNonce();
+                    output.println(nonce);
 
-                        String encodedKey = input.readLine();
-                        byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
-                        SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
-                        String receivedMAC = input.readLine();
+                    String encodedKey = input.readLine();
+                    byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+                    SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
+                    String receivedMAC = input.readLine();
 
-                        String newUserName = input.readLine();
-                        String newPassword = input.readLine();
+                    String newUserName = input.readLine();
+                    String newPassword = input.readLine();
+                    if(newPassword.equals("null") || newUserName.equals("null")){
+                        input.close();
+                        output.close();
+                        socket.close();
+                        System.err.println("Client disconnected.");
+                        continue;
+                    }
 
                         if (MACUtil.verifyMAC(newUserName + newPassword, nonce, key, receivedMAC)) {
                             if (registerUser(newUserName, newPassword) == 1) {
@@ -123,7 +139,7 @@ public class Server implements CommandLineRunner {
                             } else if (registerUser(newUserName, newPassword) == -1) {
                                 output.println("Registration failed. Username already exists.");
                             } else if (registerUser(newUserName, newPassword) == -2) {
-                                output.println("Registration failed. Server not available. Contact the Admin if this error persists.");
+                                output.println("Registration failed. Server not available. Contact the bank if the issue persists.");
                             }
                         }
                     } else {
@@ -150,12 +166,17 @@ public class Server implements CommandLineRunner {
 
     private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
-            output.println("Select an option:");
-
+            String transactionsNumber = userRepository.findUserTransactionLenghtByUserId(user.getId()).toString();
+            output.println(transactionsNumber);
             String option = input.readLine();
 
             if ("0".equals(option)) {
-                // Handle transaction
+                String transaction = input.readLine();
+
+                if (transaction.equals("null")) {
+                    continue;
+                }
+
                 String nonce =  MACUtil.generateNonce();
                 output.println(nonce);
 
@@ -163,7 +184,7 @@ public class Server implements CommandLineRunner {
                 byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
                 SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA512");
                 String receivedMAC = input.readLine();
-                String transaction = input.readLine();
+
 
                 if (MACUtil.verifyMAC(transaction, nonce, key, receivedMAC)) {
                     String[] parts = transaction.split(",");
@@ -178,6 +199,7 @@ public class Server implements CommandLineRunner {
                     newTransaction.setSourceAccount(parts[0]);
                     newTransaction.setDestinationAccount(parts[1]);
                     newTransaction.setAmount(Double.parseDouble(parts[2]));
+                    newTransaction.setUser(user);
 
 
                     transactionRepository.save(newTransaction);

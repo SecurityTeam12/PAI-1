@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 @Setter
 public class Transaction {
     @Id
-	@SequenceGenerator(name = "entity_seq", 
-        sequenceName = "entity_sequence", 
-        initialValue = 100)
-	@GeneratedValue(strategy = GenerationType.SEQUENCE	, generator = "entity_seq")
+    @SequenceGenerator(name = "entity_seq",
+            sequenceName = "entity_sequence",
+            initialValue = 100)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE	, generator = "entity_seq")
     private Long id;
 
     @Column(nullable = false)
@@ -28,6 +28,10 @@ public class Transaction {
 
     @Column(nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
+
+    @ManyToOne()
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Override
     public String toString() {
