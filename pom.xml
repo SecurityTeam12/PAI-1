@@ -11,6 +11,7 @@
 	<groupId>secteam12</groupId>
 	<artifactId>pai1</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>pai1</name>
 	<description>PA1 by SecTeam12</description>
 	<url/>

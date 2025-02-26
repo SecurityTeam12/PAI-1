@@ -29,10 +29,6 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
 
-    @ManyToOne()
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
     @Override
     public String toString() {
         return "Transaction{" +
