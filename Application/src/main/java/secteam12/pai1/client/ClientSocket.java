@@ -13,6 +13,16 @@ import java.io.*;
 import java.security.KeyStore;
 import java.util.Base64;
 import java.util.Map;
+import java.net.Socket;
+import java.util.Base64;
+import java.util.Map;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.swing.JOptionPane;
+
+
+import secteam12.pai1.utils.MACUtil;
 
 public class ClientSocket {
     private static final String HMAC_SHA512 = "HmacSHA512";
@@ -49,22 +59,24 @@ public class ClientSocket {
                 // create BufferedReader for reading server response
                 BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                // read and display menu options from server
-                String menuOption1 = input.readLine();
-                String menuOption2 = input.readLine();
-                String menuOption3 = input.readLine();
-
-                String menu = menuOption1 + "\n" + menuOption2 + "\n" + menuOption3;
-                String option = JOptionPane.showInputDialog(menu);
+                int option = JOptionPane.showOptionDialog(null, "WELCOME TO INTEGRIDOS", "Select an option", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Login", "Register" },null);
 
                 // send selected option to server
                 output.println(option);
 
-                if ("1".equals(option)) {
+                if (option == 0) {
                     for (int i = 0; i < 3; i++) {
                         String nonce  =  input.readLine();
                         String userName = JOptionPane.showInputDialog("Enter username:");
+                        if(userName == null){
+                            output.println(userName);
+                            break;
+                        }
                         String password = JOptionPane.showInputDialog("Enter password:");
+                        if(password == null){
+                            output.println(password);
+                            break;
+                        }
 
                         Map<String,String> secureTransaction = secureTransaction(nonce, userName + password);
                         String encodedKey = secureTransaction.get("EncodedKey");
@@ -83,17 +95,33 @@ public class ClientSocket {
                         }else{
                             Thread.sleep(3000);
                             JOptionPane.showMessageDialog(null, response);
+                            if(i == 2){
+                                JOptionPane.showMessageDialog(null, "Too many login attempts. Exiting...");
+                            }
                         }
                     }
-                    JOptionPane.showMessageDialog(null, "Too many login attempts. Exiting...");
 
-                } else if ("2".equals(option)) {
+                } else if (option == 1) {
                     // Handle registration
+                    String newUserName = null;
+                    String newPassword = null;
+                    while(true){
+                        newUserName = JOptionPane.showInputDialog("Enter new username:");
+                        if(newUserName == null){
+                            break;
+                        }
+                        newPassword = JOptionPane.showInputDialog("Enter new password:");
+                        if(newPassword == null){
+                            break;
+                        }
+                        if(!checkPasswordSecurity(newPassword)){
+                            JOptionPane.showMessageDialog(null, "Password does not meet security requirements.");
+                        }else{
+                            break;
+                        }
+                    }
+
                     String nonce  =  input.readLine();
-                    String newUserName = JOptionPane.showInputDialog("Enter new username:");
-                    String newPassword = JOptionPane.showInputDialog("Enter new password:");
-
-
                     Map<String,String> secureTransaction = secureTransaction(nonce, newUserName + newPassword);
                     String encodedKey = secureTransaction.get("EncodedKey");
                     String secureMac = secureTransaction.get("SecureMac");
@@ -103,13 +131,14 @@ public class ClientSocket {
                     output.println(newUserName);
                     output.println(newPassword);
 
+                    if(newUserName == null || newPassword == null){
+                        continue;
+                    }
                     // read response from server
                     String response = input.readLine();
                     JOptionPane.showMessageDialog(null, response);
 
                 } else {
-                    String response = input.readLine();
-                    JOptionPane.showMessageDialog(null, response);
                     break;
                 }
 
@@ -118,7 +147,7 @@ public class ClientSocket {
                 input.close();
                 socket.close();
             }
-
+            
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -129,7 +158,10 @@ public class ClientSocket {
         while (true) {
             // read and display authenticated user menu options from server
 
-            String menu = welcome + "\n" + input.readLine();
+            String transactionNumber = input.readLine();
+            String transactionNumberMessage = "You sent " + transactionNumber + " transactions.";
+
+            String menu = welcome + "\n" + transactionNumberMessage + "\n" +  "Select an option";
             int option = JOptionPane.showOptionDialog(null, menu, "Select an option", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, new String[] { "Perform a Transaction", "Logout" },null);
 
             // send selected option to server
@@ -138,17 +170,20 @@ public class ClientSocket {
             if (option == 0) {
                 // Handle transaction
                 String transaction = JOptionPane.showInputDialog("Enter transaction in format 'Cuenta origen, Cuenta destino, Cantidad transferida':");
+                output.println(transaction);
+                if (transaction == null) {
+                    continue;
+                }
                 String nonce  =  input.readLine();
 
+                // read response from server
                 Map<String,String> secureTransaction = secureTransaction(nonce, transaction);
                 String encodedKey = secureTransaction.get("EncodedKey");
                 String secureMac = secureTransaction.get("SecureMac");
 
                 output.println(encodedKey);
                 output.println(secureMac);
-                output.println(transaction);
 
-                // read response from server
                 String response = input.readLine();
                 JOptionPane.showMessageDialog(null, response);
 
@@ -170,6 +205,21 @@ public class ClientSocket {
         String secureMac = MACUtil.generateMAC(data, nonce,key);
 
         return Map.of("EncodedKey", encodedKey, "SecureMac", secureMac);
+    }
+
+    private static Boolean checkPasswordSecurity(String password) throws Exception {
+        Boolean hasUppercase = !password.equals(password.toLowerCase());
+        Boolean hasLowercase = !password.equals(password.toUpperCase());
+        Boolean hasNumber = password.matches(".*\\d.*");
+        Boolean hasSpecialChar = !password.matches("[A-Za-z0-9 ]*");
+        Boolean hasCorrectLength = password.length() >= 8;
+
+        if (hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasCorrectLength) {
+            return true;
+        }
+        return false;
+
+
     }
 
 }
