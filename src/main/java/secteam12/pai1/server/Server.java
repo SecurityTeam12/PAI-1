@@ -128,7 +128,7 @@ public class Server implements CommandLineRunner {
         
     }
 
-    private void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
+    public void handleAuthenticatedUser(BufferedReader input, PrintWriter output, User user) throws Exception {
         while (true) {
             String transactionsNumber = userRepository.findUserTransactionLenghtByUserId(user.getId()).toString();
             output.println(transactionsNumber);
@@ -181,7 +181,7 @@ public class Server implements CommandLineRunner {
         }
     }
 
-    private User loginUser(String userName, String password){
+    public User loginUser(String userName, String password){
         List<User> users = userRepository.findAll();
 
         // Argon2 setup for password hashing
@@ -195,7 +195,7 @@ public class Server implements CommandLineRunner {
         return null;
     }
 
-    private boolean registerUser(String userName, String password) {
+    public boolean registerUser(String userName, String password) {
         if (userRepository.findByUsername(userName) != null) {
             return false; // Username already exists
         }
